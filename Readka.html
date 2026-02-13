@@ -1,0 +1,246 @@
+Вот полный код вашего приложения:
+
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Электронная библиотека</title>
+    <style>
+        /* Общие стили */
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        /* Шапка приложения */
+        .app-header {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #2c3e50;
+            color: white;
+        }
+
+        /* Боковое меню */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -250px;
+            width: 250px;
+            height: 100%;
+            background: #34495e;
+            transition: left 0.3s;
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        /* Экран приветствия */
+        .welcome-screen {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        /* Экран регистрации */
+        .register-screen {
+            display: none;
+            padding: 20px;
+        }
+
+        /* Экран входа */
+        .login-screen {
+            display: none;
+            padding: 20px;
+        }
+
+        /* Экран книг */
+        .books-screen {
+            display: none;
+            padding: 20px;
+        }
+
+        /* Карточка книги */
+        .book-item {
+            border: 1px solid #ddd;
+            margin: 10px;
+            padding: 15px;
+            position: relative;
+            cursor: pointer;
+            transition: box-shadow 0.3s;
+        }
+
+        .book-cover {
+            width: 100px;
+            height: 150px;
+            margin: 0 auto;
+            overflow: hidden;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .delete-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: transparent;
+            border: none;
+            color: red;
+            cursor: pointer;
+        }
+
+        /* Формы */
+        form input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Шапка приложения -->
+    <header class="app-header">
+        <button class="menu-button" onclick="openMenu()">☰</button>
+        <h1>Библиотека</h1>
+    </header>
+
+    <!-- Боковое меню -->
+    <div class="sidebar" id="sidebar">
+        <div class="menu-item" onclick="goToProfile()">Личные данные</div>
+        <div class="menu-item" onclick="goToSettings()">Настройки</div>
+        <div class="menu-item" onclick="logout()">Выйти</div>
+        <div class="menu-item" onclick="confirmDeleteAccount()">Удалить аккаунт</div>
+    </div>
+
+    <!-- Экран приветствия -->
+    <div class="welcome-screen" id="welcomeScreen">
+        <h1>Приветствую тебя, путник!</h1>
+        <p>Перед тобой — врата в удивительный мир книг...</p>
+        <a href="#" onclick="showScreen('registerScreen')">Регистрируйся</a>
+    </div>
+
+    <!-- Экран регистрации -->
+    <div class="register-screen" id="registerScreen">
+        <h2>Регистрация</h2>
+        <form id="registerForm">
+            <input type="text" placeholder="Имя" required>
+            <input type="text" placeholder="Телефон/Email" required>
+            <div class="password-field">
+                <input type="password" placeholder="Создайте пароль" required>
+                <button type="button" class="show-password">👁</button>
+            </div>
+            <div class="password-field">
+                <input type="password" placeholder="Повторите пароль" required>
+                <button type="button" class="show-password">👁</button>
+            </div>
+            <label>
+                <input type="checkbox" id="saveLogin"> Сохранить вход
+            </label>
+            <button type="submit">Зарегистрироваться</button>
+            <p>
+                Соглашаюсь с <a href="#">пользовательским соглашением</a>
+            </p>
+        </form>
+    </div>
+
+    <!-- Экран входа -->
+    <div class="login-screen" id="loginScreen">
+        <h2>Вход в систему</h2>
+        <form id="loginForm">
+            <input type="text" placeholder="Телефон/Email" required>
+            <div class="password-field">
+                <input type="password" placeholder="Пароль" required>
+                <button type="button" class="show-password">👁</button>
+            </div>
+            <label>
+                <input type="checkbox" id="rememberMe"> Сохранить данные
+            </label>
+            <button type="submit">Войти</button>
+        </form>
+    </div>
+
+    <!-- Экран книг -->
+    <div class="books-screen" id="booksScreen">
+        <h2>Мои книги</h2>
+        <div id="booksList"></div>
+        <button onclick="addFile()">+ Добавить файл</button>
+    </div>
+
+    <script>
+        // JavaScript код
+
+        // Управление меню
+        function openMenu() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+        }
+
+        // Переключение экранов
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => screen.style.display = 'none');
+            document.getElementById(screenId).style.display = 'block';
+        }
+
+        // Работа с книгами
+        let books = [];
+
+        function addFile() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.pdf,.epub,.fb2';
+            fileInput.click();
+        }
+
+        function renderBooks() {
+            const booksList = document.getElementById('booksList');
+            booksList.innerHTML = '';
+            
+            if (books.length === 0) {
+                booksList.innerHTML = '<p style="color: #999;">Здесь ничего нет — добавьте книгу и начните читать</p>';
+                return;
+            }
+
+            books.forEach(book => {
+                const bookItem = document.createElement('div');
+                bookItem.classList.add('book-item');
+                bookItem.innerHTML = `
+                    <div class="book-cover">
+                        <img src="${book.cover || 'default.jpg'}" alt="${book.title}">
+                    </div>
+                    <h3>${book.title}</h3>
+                    <button class="delete-button" onclick="deleteBook(${book.id})">❌</button>
+                `;
+                
+                bookItem.addEventListener('click', () => {
+                    openBook(book);
+                });
+                
+                booksList.appendChild(bookItem);
+            });
+        }
+
+        function deleteBook(bookId) {
+            if (confirm('Вы уверены, что хотите удалить книгу?')) {
+                books = books.filter(book => book.id !== bookId);
+                renderBooks();
+            }
+        }
+
+        function openBook(book) {
+            // Логика открытия книги
+        }
+
+        // Инициализация
+        window.onload = () => {
+            showScreen('welcomeScreen');
+            renderBooks();
+        };
+    </script>
+</body>
+</html>
