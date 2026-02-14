@@ -1,1 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyBookReader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+        .header {
+            background: #4CAF50;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+        .container {
+            padding: 15px;
+        }
+        .book-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .book-item {
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #reader-container {
+            width: 100%;
+            height: 60vh;
+            border: 1px solid #ddd;
+            overflow: auto;
+            display: none;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>MyBookReader</h1>
+    </div>
 
+    <div class="container">
+        <div id="library-screen">
+            <h2>Ваша библиотека</h2>
+            <button id="add-book-btn">Добавить книгу</button>
+            <div class="book-list" id="book-list">
+                <!-- Книги будут добавляться сюда -->
+            </div>
+        </div>
+
+        <div id="reader-screen" style="display:none">
+            <button id="back-btn">← Назад</button>
+            <h2 id="current-book-title"></h2>
+            <div id="reader-container"></div>
+        </div>
+    </div>
+
+    <!-- Библиотеки для чтения EPUB и PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/epubjs/0.3.92/epub.min.js"></script>
+    <script src="https://mozilla.github.io/pdf.js/build/pdf.min.js"></script>
+
+    <script>
+        // Элементы интерфейса
+        const libraryScreen = document.getElementById('library-screen');
+        const readerScreen = document.getElementById('reader-screen');
+        const bookList = document.getElementById('book-list');
+        const addBookBtn = document.getElementById('add-book-btn');
+        const backBtn = document.getElementById('back-btn');
+        const currentBookTitle = document.getElementById('current-book-title');
+        const readerContainer = document.getElementById('reader-container');
+
+        // Массив книг (в реальном приложении — загрузка из файловой системы)
+        let books = [
+            { id: 1, title: "Пример EPUB", file: "example.epub", type: "epub" },
+            { id: 2, title: "Пример PDF", file: "example.pdf", type: "pdf" }
+        ];
+
+        // Отображение библиотеки
+        function renderLibrary() {
+            bookList.innerHTML = '';
+            books.forEach(book => {
+                const bookItem = document.createElement('div');
+                bookItem.className = 'book-item';
+                bookItem.innerHTML = `<h3>${book.title}</h3><p>${book.type.toUpperCase()}</p>`;
+                bookItem.addEventListener('click', () => openBook(book));
+                bookList.appendChild(bookItem);
+            });
+        }
+
+        function openBook(book) {
+            libraryScreen.style.display = 'none';
+            readerScreen.style.display = 'block';
+            currentBookTitle.textContent = book.title;
+            readerContainer.innerHTML = ''; // Очищаем контейнер перед новым чтением
+            readerContainer.style.display = 'block';
+
+            if (book.type === 'epub') {
+                // Чтение EPUB через epub.js
+                const epub = ePub(book.file);
+                epub.renderTo(readerContainer);
+            } else if (book.type === 'pdf') {
+                // Чтение PDF через pdf.js
+                pdfjsLib.getDocument(book.file).promise.then(pdf => {
+                    pdf.getPage(1).then(page => {
+                        const viewport = page.getViewport({ scale: 1.5 });
+                        const canvas = document.createElement('canvas');
+                        readerContainer.appendChild(canvas);
+                        const renderContext = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        page.render({ canvasContext: renderContext, viewport: viewport });
+                    });
+                }).catch(error => {
+                    console.error('Ошибка при чтении PDF:', error);
+                    readerContainer.innerHTML = '<p>Не удалось открыть PDF‑файл</p>';
+                });
+            }
+        }
+
+
+        addBookBtn.addEventListener('click', () => {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.epub,.fb2,.pdf'; // Поддерживаемые форматы
+        fileInput.multiple = true; // Разрешаем выбор нескольких файлов
+
+        fileInput.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (files.length === 0) return;
+
+            Array.from(files).forEach(file => {
+                const fileType = file.name.split('.').pop().toLowerCase();
+                const book = {
+                    id: Date.now() + Math.random(),
+                    title: file.name,
+                    file: URL.createObjectURL(file), // Создаём временный URL для чтения
+                    type: fileType,
+                    size: file.size
+                };
+
+                books.push(book);
+            });
+
+            renderLibrary(); // Обновляем отображение библиотеки
+            alert(`Добавлено ${files.length} книг`);
+        });
+
+        fileInput.click(); // Открываем диалог выбора файлов
+    });
+
+    </script>
+</body>
+</html>
